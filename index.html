@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Ruleta</title>
+<style>
+:root{
+  --bg:#f5f1e6;
+  --bg-2:#fffdf7;
+  --card:rgba(17,24,39,.78);
+  --card-solid:#111827;
+  --line:rgba(255,255,255,.10);
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --primary:#7c3aed;
+  --primary-2:#a855f7;
+  --success:#10b981;
+  --danger:#ef4444;
+  --shadow:0 24px 80px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html,body{width:100%;min-height:100%;margin:0}
+html{scroll-behavior:smooth}
+
+body{
+  min-height:100vh;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  color:#1f2937;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,255,255,.55), transparent 28%),
+    radial-gradient(circle at 82% 15%, rgba(246,231,205,.32), transparent 30%),
+    linear-gradient(135deg,#f7ead7 0%,#f3e0c6 52%,#f8eddc 100%);
+  padding:24px;
+  overflow-x:hidden;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(31,41,55,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(31,41,55,.025) 1px,transparent 1px);
+  background-size:32px 32px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.55),transparent 80%);
+}
+
+.menu-floating,.name-floating{
+  position:fixed;
+  top:18px;
+  z-index:200;
+  height:42px;
+  border:1px solid rgba(51,65,85,.18);
+  color:#334155;
+  background:rgba(255,253,247,.88);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 10px 30px rgba(0,0,0,.2);
+  transition:transform .2s ease,background .2s ease,border-color .2s ease;
+}
+.menu-floating:hover,.name-floating:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.96);
+  border-color:rgba(255,255,255,.18);
+}
+.menu-floating{
+  left:18px;
+  width:42px;
+  padding:0;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  font-size:17px;
+}
+.name-floating{
+  left:70px;
+  padding:0 14px;
+  border-radius:12px;
+  font-size:13px;
+  font-weight:800;
+}
+
+.container{
+  width:min(980px,100%);
+  margin:0 auto;
+  padding:66px 0 34px;
+  text-align:center;
+  position:relative;
+  z-index:1;
+}
+
+h1{
+  margin:0;
+  padding:0 24px;
+  font-size:clamp(2.3rem,6vw,4rem);
+  line-height:1.05;
+  letter-spacing:-.04em;
+  font-weight:900;
+  background:linear-gradient(90deg,#111827 0%,#4f46e5 55%,#7c3aed 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+
+.subtitle{
+  display:block;
+  margin:12px auto 24px;
+  max-width:620px;
+  color:#6b7280;
+  font-size:clamp(.9rem,2vw,1rem);
+}
+
+.panel,.options-panel{
+  background:linear-gradient(180deg,rgba(255,253,247,.96),rgba(250,247,239,.94));
+  border:1px solid rgba(51,65,85,.18);
+  border-radius:28px;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.panel{
+  width:100%;
+  padding:clamp(18px,4vw,30px);
+}
+
+.wheel-box{
+  width:min(500px,78vw,100%);
+  aspect-ratio:1;
+  position:relative;
+  margin:auto;
+  filter:drop-shadow(0 25px 45px rgba(0,0,0,.28));
+}
+.wheel-stage{
+  width:min(700px,100%);
+  margin:auto;
+  display:grid;
+  grid-template-columns:150px minmax(0,500px);
+  align-items:center;
+  justify-content:center;
+  gap:24px;
+}
+.side-spin{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.side-spin .primary{
+  width:132px;
+}
+
+
+canvas{width:100%;height:100%;display:block}
+
+.pointer{
+  position:absolute;
+  top:-2px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:clamp(13px,2.4vw,20px) solid transparent;
+  border-right:clamp(13px,2.4vw,20px) solid transparent;
+  border-top:clamp(26px,4vw,39px) solid #fff;
+  filter:drop-shadow(0 5px 8px rgba(0,0,0,.55));
+  z-index:3;
+}
+
+.center{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:clamp(64px,13vw,92px);
+  height:clamp(64px,13vw,92px);
+  border-radius:50%;
+  background:linear-gradient(135deg,#ffffff,#e2e8f0);
+  color:#0f172a;
+  border:clamp(5px,1.2vw,8px) solid #0f172a;
+  display:grid;
+  place-items:center;
+  font-size:clamp(10px,2vw,13px);
+  font-weight:950;
+  letter-spacing:.04em;
+  z-index:2;
+  box-shadow:0 8px 25px rgba(0,0,0,.28);
+}
+
+.main-actions{
+  width:min(560px,100%);
+  margin:22px auto 0;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+button,select,textarea,input{font:inherit;max-width:100%}
+
+button{
+  border:0;
+  border-radius:14px;
+  padding:13px 16px;
+  font-weight:850;
+  color:white;
+  cursor:pointer;
+  transition:transform .18s ease,filter .18s ease,box-shadow .18s ease;
+}
+button:hover:not(:disabled){
+  transform:translateY(-2px);
+  filter:brightness(1.06);
+}
+button:active:not(:disabled){transform:translateY(0)}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+.primary{
+  background:linear-gradient(135deg,var(--success),#22c55e);
+  box-shadow:0 12px 28px rgba(16,185,129,.22);
+}
+.secondary{
+  background:linear-gradient(135deg,#4f46e5,var(--primary-2));
+  box-shadow:0 12px 28px rgba(124,58,237,.22);
+}
+.dark{
+  color:#6f6254;
+  background:linear-gradient(135deg,#eee0cf,#e6d4bd);
+  border:1px solid rgba(111,98,84,.14);
+  box-shadow:0 8px 18px rgba(111,98,84,.10);
+}
+.danger{
+  color:#8f5145;
+  background:linear-gradient(135deg,#f1d8cf,#e8c5bb);
+  border:1px solid rgba(143,81,69,.14);
+  box-shadow:0 8px 18px rgba(143,81,69,.10);
+}
+
+.result{
+  width:min(560px,100%);
+  margin:18px auto 0;
+  background:rgba(255,255,255,.60);
+  border:1px solid rgba(51,65,85,.18);
+  border-radius:18px;
+  padding:18px;
+}
+.result small{
+  color:#a5b4fc;
+  font-weight:850;
+  letter-spacing:.08em;
+}
+#resultText{
+  min-height:64px;
+  display:grid;
+  place-items:center;
+  font-size:clamp(1.8rem,5.5vw,3rem);
+  font-weight:950;
+  letter-spacing:-.025em;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  margin-top:4px;
+}
+#status{
+  color:#6b7280;
+  font-size:.9rem;
+  line-height:1.4;
+}
+
+.options-panel{
+  margin-top:18px;
+  padding:20px;
+  text-align:left;
+}
+
+.options-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+.options-head label{font-weight:900}
+.count{
+  color:#cbd5e1;
+  font-size:.82rem;
+  padding:6px 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(51,65,85,.18);
+}
+
+textarea,select,input{
+  width:100%;
+  background:#fff;
+  color:#1f2937;
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:12px;
+  outline:none;
+  transition:border-color .18s ease,box-shadow .18s ease;
+}
+textarea::placeholder,input::placeholder{color:#64748b}
+textarea:focus,select:focus,input:focus{
+  border-color:rgba(167,139,250,.8);
+  box-shadow:0 0 0 3px rgba(124,58,237,.16);
+}
+textarea{
+  min-height:150px;
+  resize:vertical;
+}
+.options-actions{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  gap:10px;
+  margin-top:10px;
+}
+.options-actions select{min-width:0}
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(2,6,23,.65);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:1000;
+}
+.modal-backdrop.open{display:flex}
+
+.modal{
+  width:min(590px,96vw);
+  max-height:90vh;
+  overflow:auto;
+  background:linear-gradient(180deg,#fffdf7,#f6f2e9);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:22px;
+  text-align:left;
+  box-shadow:0 30px 100px rgba(0,0,0,.55);
+}
+.modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:16px;
+}
+.modal-title{font-size:1.2rem;font-weight:900}
+.close{
+  width:42px;
+  height:42px;
+  padding:0;
+  background:#1e293b;
+  border:1px solid var(--line);
+  display:grid;
+  place-items:center;
+}
+
+.mode-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  background:rgba(31,41,55,.05);
+  padding:7px;
+  border-radius:15px;
+  border:1px solid var(--line);
+}
+.mode-tab{
+  background:transparent;
+  color:#cbd5e1;
+  border:1px solid transparent;
+}
+.mode-tab.active{
+  background:linear-gradient(135deg,#4f46e5,var(--primary));
+  color:#fff;
+  box-shadow:0 8px 20px rgba(79,70,229,.25);
+}
+
+.mode-panel{
+  display:none;
+  margin-top:12px;
+  background:rgba(255,255,255,.55);
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:15px;
+}
+.mode-panel.active{display:grid;gap:11px}
+.mode-panel p{
+  margin:0;
+  color:#94a3b8;
+  line-height:1.5;
+  font-size:.9rem;
+}
+label{font-weight:800;font-size:.92rem}
+
+@media(max-width:700px){
+  .wheel-stage{
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+  .side-spin{
+    order:2;
+  }
+  .side-spin .primary{
+    width:min(560px,100%);
+  }
+  body{padding:10px}
+  .container{padding-top:74px}
+  h1{padding:0 40px;font-size:clamp(2rem,10vw,3rem)}
+  .panel,.options-panel{border-radius:22px}
+  .options-panel{padding:14px}
+  .options-actions{grid-template-columns:1fr 1fr}
+  .options-actions select{grid-column:1/-1}
+  .options-actions button{min-height:46px}
+  .modal{width:calc(100vw - 16px);max-height:calc(100vh - 16px);padding:15px}
+}
+
+@media(max-width:420px){
+  .menu-floating{right:6px;left:auto;top:auto;bottom:10px;width:28px;height:28px;font-size:10px;opacity:.10}
+  .name-floating{left:56px;top:10px;height:38px}
+  .container{padding-top:62px}
+  .wheel-box{width:min(82vw,340px)}
+  .panel{padding:13px}
+  .options-actions{grid-template-columns:1fr}
+  .options-actions select{grid-column:auto}
+  .mode-tabs{grid-template-columns:1fr}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    scroll-behavior:auto !important;
+    transition:none !important;
+    animation:none !important;
+  }
+}
+
+.result-modal .modal{
+  width:min(520px,92vw);
+  padding:30px 26px;
+  text-align:center;
+  background:linear-gradient(180deg,#fffaf2,#f3e2cc);
+  border:1px solid rgba(111,98,84,.14);
+}
+.result-modal .winner-kicker{
+  margin:0 0 10px;
+  color:#8c7a68;
+  font-size:.85rem;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.result-modal .winner-text{
+  margin:0;
+  color:#3d332a;
+  font-size:clamp(1.55rem,4vw,2.4rem);
+  line-height:1.2;
+  font-weight:950;
+  overflow-wrap:anywhere;
+}
+.result-modal .winner-value{
+  margin-top:10px;
+  color:#7a4f27;
+  font-size:clamp(2rem,6vw,3.3rem);
+  line-height:1.1;
+  font-weight:950;
+  overflow-wrap:anywhere;
+}
+.result-modal .winner-close{
+  margin-top:24px;
+  width:100%;
+  color:#fff;
+  background:linear-gradient(135deg,#9b6b3d,#b98551);
+  box-shadow:0 10px 22px rgba(155,107,61,.20);
+}
+
+/* Ajuste final del botón de menú */
+.menu-floating{
+  position:fixed !important;
+  right:10px !important;
+  left:auto !important;
+  top:auto !important;
+  bottom:16px !important;
+  width:30px !important;
+  height:30px !important;
+  padding:0 !important;
+  border-radius:50% !important;
+  opacity:.10 !important;
+  color:#6f6254 !important;
+  background:rgba(247,234,215,.10) !important;
+  border:1px solid rgba(111,98,84,.05) !important;
+  box-shadow:none !important;
+  z-index:200 !important;
+}
+.menu-floating:hover{
+  transform:none !important;
+  opacity:.18 !important;
+  background:rgba(247,234,215,.20) !important;
+}
+
+</style>
+</head>
+<body>
+<button class="menu-floating" id="openMenu" title="Configuración" aria-label="Configuración">☰</button>
+<button class="name-floating" id="openNameMenu" title="Cambiar nombre" aria-label="Cambiar nombre">✏️ Nombre</button>
+<div class="container">
+  <h1 id="wheelTitle">🎡 Ruleta</h1>
+
+  <section class="panel">
+    <div class="wheel-stage">
+      <div class="side-spin">
+        <button class="primary" id="mainSpin" aria-label="Girar la ruleta">🎯 Girar</button>
+      </div>
+      <div class="wheel-box">
+        <canvas id="wheel" width="700" height="700"></canvas>
+        <div class="pointer"></div>
+        <div class="center">GIRAR</div>
+      </div>
+    </div>
+
+    <div class="result">
+      <small>RESULTADO</small>
+      <div id="resultText">—</div>
+      <div id="status">Listo para girar.</div>
+    </div>
+  </section>
+
+  <section class="options-panel">
+    <div class="options-head">
+      <label for="options">Resultados de la ruleta</label>
+      <span class="count" id="mainCount">0 opciones</span>
+    </div>
+    <textarea id="options" placeholder="Escribe un resultado por línea...">Premio 1
+Premio 2
+Premio 3
+Premio 4
+Premio 5
+Premio 6
+Premio 7
+Premio 8</textarea>
+    <div class="options-actions">
+      <select id="speed">
+        <option value="slow">Velocidad lenta</option>
+        <option value="normal" selected>Velocidad normal</option>
+        <option value="fast">Velocidad rápida</option>
+      </select>
+      <button class="dark" id="update">🔄 Actualizar</button>
+      <button class="danger" id="clear">🗑️ Vaciar</button>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="title">
+    <div class="modal-header">
+      <div class="modal-title" id="title">⚙️ Configuración</div>
+      <button class="close" id="closeMenu">✕</button>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="randomMode">🎲 Resultado aleatorio</button>
+      <button class="mode-tab" id="chosenMode">⭐ Resultado elegido</button>
+    </div>
+
+    <div class="mode-panel active" id="randomPanel">
+      <strong>Resultado aleatorio</strong>
+      <p>La ruleta escogerá automáticamente uno de los resultados.</p>
+    </div>
+
+    <div class="mode-panel" id="chosenPanel">
+      <strong>Resultado elegido</strong>
+      <p>Selecciona cuál resultado debe aparecer al finalizar el giro.</p>
+      <label for="chosenResult">Resultado</label>
+      <input id="chosenResult" type="text" list="chosenOptions" autocomplete="off"
+        placeholder="Escribe exactamente una opción, por ejemplo: Mar">
+      <datalist id="chosenOptions"></datalist>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-backdrop" id="nameModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
+    <div class="modal-header">
+      <div class="modal-title" id="nameTitle">✏️ Nombre de la ruleta</div>
+      <button class="close" id="closeNameMenu">✕</button>
+    </div>
+    <div class="mode-panel active">
+      <label for="wheelName">Escribe el nombre</label>
+      <input id="wheelName" type="text" maxlength="40" value="Ruleta" placeholder="Escribe un nombre">
+      <button class="secondary" id="saveWheelName">💾 Guardar nombre</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-backdrop result-modal" id="winnerModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="winnerTitle">
+    <div class="winner-kicker">Resultado de la ruleta</div>
+    <p class="winner-text" id="winnerTitle">El ganador es</p>
+    <div class="winner-value" id="winnerValue">—</div>
+    <button class="winner-close" id="closeWinner">Continuar</button>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById('wheel');
+const ctx=canvas.getContext('2d');
+const optionsEl=document.getElementById('options');
+const chosenResult=document.getElementById('chosenResult');
+const chosenOptions=document.getElementById('chosenOptions');
+const countEl=document.getElementById('mainCount');
+const speedEl=document.getElementById('speed');
+const resultText=document.getElementById('resultText');
+const status=document.getElementById('status');
+const mainSpin=document.getElementById('mainSpin');
+const openMenu=document.getElementById('openMenu');
+const openNameMenu=document.getElementById('openNameMenu');
+const closeMenu=document.getElementById('closeMenu');
+const modal=document.getElementById('modal');
+const nameModal=document.getElementById('nameModal');
+const closeNameMenu=document.getElementById('closeNameMenu');
+const randomMode=document.getElementById('randomMode');
+const chosenMode=document.getElementById('chosenMode');
+const randomPanel=document.getElementById('randomPanel');
+const chosenPanel=document.getElementById('chosenPanel');
+const wheelTitle=document.getElementById('wheelTitle');
+const wheelName=document.getElementById('wheelName');
+const saveWheelName=document.getElementById('saveWheelName');
+const winnerModal=document.getElementById('winnerModal');
+const winnerValue=document.getElementById('winnerValue');
+const closeWinner=document.getElementById('closeWinner');
+
+let options=[];
+let angle=0;
+let spinning=false;
+let mode='random';
+
+const palette=['#ff4d6d','#ff7a00','#ffd23f','#8ac926','#20c997','#00b4d8','#3a86ff','#6f42c1','#b5179e','#f72585','#fb5607','#ffbe0b','#2ec4b6','#43aa8b'];
+
+function readOptions(){
+  return optionsEl.value.split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
+}
+
+function updateOptions(){
+  options=readOptions();
+  countEl.textContent=options.length+' opción'+(options.length===1?'':'es');
+
+  chosenOptions.innerHTML='';
+  options.forEach(v=>{
+    const option=document.createElement('option');
+    option.value=v;
+    chosenOptions.appendChild(option);
+  });
+
+  drawWheel();
+}
+
+function drawWheel(){
+  const size=canvas.width,c=size/2,r=size*.46;
+  ctx.clearRect(0,0,size,size);
+
+  if(!options.length){
+    ctx.fillStyle='#334155';
+    ctx.beginPath();ctx.arc(c,c,r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#cbd5e1';ctx.font='bold 34px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Agrega opciones',c,c);
+    return;
+  }
+
+  const slice=Math.PI*2/options.length;
+  ctx.save();
+  ctx.translate(c,c);
+  ctx.rotate(angle);
+
+  for(let i=0;i<options.length;i++){
+    const a=i*slice;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0,r,a,a+slice);
+    ctx.closePath();
+    ctx.fillStyle=palette[i%palette.length];
+    ctx.fill();
+    ctx.strokeStyle='#0f172a';
+    ctx.lineWidth=3;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.rotate(a+slice/2);
+    ctx.fillStyle='#fff';
+    ctx.font='bold '+Math.max(14,Math.min(23,320/options.length))+'px Arial';
+    ctx.textAlign='right';
+    ctx.textBaseline='middle';
+    let label=options[i];
+    const max=options.length>14?12:options.length>9?17:23;
+    if(label.length>max)label=label.slice(0,max-1)+'…';
+    ctx.fillText(label,r-22,0);
+    ctx.restore();
+  }
+
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(c,c,r,0,Math.PI*2);
+  ctx.strokeStyle='#fff';
+  ctx.lineWidth=10;
+  ctx.stroke();
+}
+
+function normalized(v){
+  const t=Math.PI*2;
+  return ((v%t)+t)%t;
+}
+
+function duration(){
+  return speedEl.value==='slow'?4200:speedEl.value==='fast'?2300:3200;
+}
+
+function setDisabled(value){
+  mainSpin.disabled=value;
+}
+
+function animateTo(target,done){
+  const startAngle=angle;
+  const change=target-startAngle;
+  const started=performance.now();
+
+  function frame(now){
+    const p=Math.min(1,(now-started)/duration());
+    const eased=1-Math.pow(1-p,4);
+    angle=startAngle+change*eased;
+    drawWheel();
+
+    if(p<1){
+      requestAnimationFrame(frame);
+    }else{
+      angle=target;
+      drawWheel();
+      spinning=false;
+      setDisabled(false);
+      done();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function randomSpin(){
+  if(spinning||!options.length)return;
+
+  // El menú ya fue cerrado por la acción principal antes de llegar aquí.
+  spinning=true;
+  setDisabled(true);
+  status.textContent='Girando...';
+
+  const turns=speedEl.value==='slow'?7:speedEl.value==='fast'?11:9;
+  const target=angle+turns*Math.PI*2+Math.random()*Math.PI*2;
+
+  animateTo(target,()=>{
+    const slice=Math.PI*2/options.length;
+    const idx=Math.floor(normalized(-Math.PI/2-angle)/slice)%options.length;
+    resultText.textContent=options[idx];
+    status.textContent='Resultado: '+options[idx];
+    showWinner(options[idx]);
+  });
+}
+
+function chosenSpin(){
+  if(spinning || !options.length) return;
+
+  const typed = chosenResult.value.trim();
+
+  // Si no hay un nombre elegido o no coincide exactamente con la lista,
+  // cambia automáticamente a resultado aleatorio y gira de inmediato.
+  const idx = options.findIndex(v => v === typed);
+
+  if(idx < 0){
+    setMode('random');
+    status.textContent='Girando...';
+    randomSpin();
+    return;
+  }
+
+  spinning=true;
+  setDisabled(true);
+  status.textContent='Girando...';
+
+  const slice=Math.PI*2/options.length;
+  const desiredCenter=idx*slice+slice/2;
+  const base=-Math.PI/2-desiredCenter;
+
+  let target=base;
+  while(target<=angle) target+=Math.PI*2;
+
+  const turns=speedEl.value==='slow'?7:speedEl.value==='fast'?11:9;
+  target+=turns*Math.PI*2;
+
+  animateTo(target,()=>{
+    resultText.textContent=options[idx];
+    status.textContent='Resultado: '+options[idx];
+    showWinner(options[idx]);
+  });
+}
+
+function showWinner(result){
+  winnerValue.textContent=result;
+  winnerModal.classList.add('open');
+}
+function closeWinnerModal(){
+  winnerModal.classList.remove('open');
+}
+
+function setWheelName(name){
+  const clean=(name||'Ruleta').trim().slice(0,40) || 'Ruleta';
+  wheelTitle.textContent='🎡 '+clean;
+  document.title=clean;
+  wheelName.value=clean;
+  try{localStorage.setItem('wheelName',clean);}catch(e){}
+}
+
+function setMode(newMode){
+  mode=newMode;
+  const isRandom=newMode==='random';
+
+  randomMode.classList.toggle('active',isRandom);
+  chosenMode.classList.toggle('active',!isRandom);
+  randomPanel.classList.toggle('active',isRandom);
+  chosenPanel.classList.toggle('active',!isRandom);
+}
+
+function openModalWindow(){
+  if(!spinning)modal.classList.add('open');
+}
+
+function closeModalWindow(){
+  modal.classList.remove('open');
+}
+
+function openNameWindow(){
+  if(!spinning)nameModal.classList.add('open');
+}
+
+function closeNameWindow(){
+  nameModal.classList.remove('open');
+}
+
+function startSpin(){
+  // Cierra la ventana emergente ANTES de realizar el giro.
+  closeModalWindow();
+
+  // No se revela el modo durante la animación.
+  if(mode==='random')randomSpin();
+  else chosenSpin();
+}
+
+openMenu.onclick=openModalWindow;
+closeMenu.onclick=closeModalWindow;
+modal.onclick=e=>{if(e.target===modal)closeModalWindow();};
+openNameMenu.onclick=openNameWindow;
+closeNameMenu.onclick=closeNameWindow;
+nameModal.onclick=e=>{if(e.target===nameModal)closeNameWindow();};
+closeWinner.onclick=closeWinnerModal;
+winnerModal.onclick=e=>{if(e.target===winnerModal)closeWinnerModal();};
+
+randomMode.onclick=()=>{
+  setMode('random');
+};
+
+chosenMode.onclick=()=>{
+  setMode('chosen');
+};
+
+mainSpin.onclick=startSpin;
+
+saveWheelName.onclick=()=>{setWheelName(wheelName.value);};
+try{setWheelName(localStorage.getItem('wheelName')||'Ruleta');}catch(e){setWheelName('Ruleta');}
+
+document.getElementById('update').onclick=updateOptions;
+document.getElementById('clear').onclick=()=>{
+  optionsEl.value='';
+  updateOptions();
+  resultText.textContent='—';
+  status.textContent='No hay opciones.';
+};
+
+optionsEl.addEventListener('input',updateOptions);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    closeModalWindow();
+    closeNameWindow();
+    closeWinnerModal();
+    return;
+  }
+
+  // La barra espaciadora controla la ruleta.
+  // No actúa mientras se esté editando el campo de resultados,
+  // un campo de texto, un selector o el nombre de la ruleta.
+  if(e.code==='Space' && !e.ctrlKey && !e.altKey && !e.shiftKey){
+    const active=document.activeElement;
+    const editing =
+      active &&
+      (
+        active===optionsEl ||
+        active===wheelName ||
+        active.matches('input, textarea, select')
+      );
+
+    if(!editing){
+      e.preventDefault();
+
+      // Si está abierta la ventana del ganador, Espacio funciona como "Continuar".
+      if(winnerModal.classList.contains('open')){
+        closeWinnerModal();
+        return;
+      }
+
+      // Si no está girando, Espacio inicia la ruleta.
+      if(!spinning){
+        startSpin();
+      }
+
+      return;
+    }
+  }
+
+  // Atajos de teclado:
+  // Alt = resultado aleatorio
+  // Shift = resultado elegido
+  const active=document.activeElement;
+  const editing =
+    active &&
+    (
+      active===optionsEl ||
+      active===wheelName ||
+      active.matches('input, textarea, select')
+    );
+
+  if(!editing && !e.repeat && e.key==='Alt'){
+    e.preventDefault();
+    setMode('random');
+    closeModalWindow();
+    status.textContent='Listo para girar.';
+    return;
+  }
+
+  if(!editing && !e.repeat && e.key==='Shift'){
+    e.preventDefault();
+    setMode('chosen');
+    closeModalWindow();
+    status.textContent='Listo para girar.';
+    return;
+  }
+});
+
+updateOptions();
+drawWheel();
+</script>
+</body>
+</html>
